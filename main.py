@@ -1,5 +1,6 @@
 import pyupbit
-import Modules.RSI_Analyzer.RSI_Analyzer as rsi
+import Modules.RSI_Analyzer.RSI_Analyzer as Rsi
+import Modules.MACD_Analyzer.MACD_Analyzer as Macd
 input_file = './Modules/Get_Coins_Data/clist'
 coin_list = []
 
@@ -11,4 +12,5 @@ with open(input_file, 'r') as file:
 print(coin_list)
 
 for coin in coin_list:
-    rsi.rsi_grph(coin)
+    Rsi.rsi_grph(coin)
+    Macd.macd_grph(coin)
