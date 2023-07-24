@@ -25,10 +25,16 @@ def stochastic_calc(coin_name, interval="minute5", count=1440):
     buy_signals = (k_percent > d_percent) & (k_percent.shift() < d_percent.shift())
     sell_signals = (k_percent < d_percent) & (k_percent.shift() > d_percent.shift())
 
-    return df, k_percent, d_percent, buy_signals, sell_signals
+    current_signal = "Neutral"
+    if buy_signals.iloc[-1]:
+        current_signal = "Buy"
+    elif sell_signals.iloc[-1]:
+        current_signal = "Sell"
+
+    return df, k_percent, d_percent, buy_signals, sell_signals, current_signal
 
 
-def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signals, recent_hours=12):
+def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signals, current_signal, recent_hours=6):
     # Get the end time of the data
     end_time = df.index[-1]
 
@@ -57,7 +63,7 @@ def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signa
     plt.plot(recent_df.index[recent_sell_signals], recent_k_percent[recent_sell_signals], 'v', markersize=10, color='r',
              label='Sell Signal')
 
-    plt.title('Stochastic Oscillator - Last 12 Hours')
+    plt.title('Stochastic Oscillator - Last 6 Hours')
     plt.xlabel('Date')
     plt.ylabel('Percentage')
     plt.legend()
@@ -67,6 +73,21 @@ def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signa
     current_time = datetime.now().strftime('%Y/%m/%d-%H:%M:%S')
     plt.text(0.01, 0.01, 'Current Time: {}'.format(current_time), transform=plt.gca().transAxes,
              fontsize=10, verticalalignment='bottom', bbox=dict(facecolor='white', alpha=0.5))
+
+    # Add a text box on the top right
+    box_text = ""
+    text_color = "gray"
+    if current_signal == "Buy":
+        box_text = "BUY"
+        text_color = "red"
+    elif current_signal == "Sell":
+        box_text = "SELL"
+        text_color = "green"
+    elif current_signal == "Neutral":
+        box_text = "Neutral"
+
+    plt.text(0.98, 0.98, box_text, transform=plt.gca().transAxes, fontsize=12, color = text_color,
+             verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='white', edgecolor='black'))
 
     # Create the 'RSI_IMG_FILES' directory if it does not exist
     img_dir = 'Modules/Stochastic_Analyzer/Stochastic_IMG_FILES'
