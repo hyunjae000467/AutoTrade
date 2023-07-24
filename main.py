@@ -32,9 +32,12 @@ for coin in coin_list:
         Macd.macd_grph(coin)
         print("[", round(progress / 30 * 100), "%] MACD Done on coin ", coin)
     elif mode == 3:
-        df, k_percent, d_percent, buy_signals, sell_signals, current_signal = Stct.stochastic_calc(coin, 'minute5', 1440)
-        Stct.stochastic_grph(coin, df, k_percent, d_percent, buy_signals, sell_signals, current_signal)
-        print("[", round(progress / 30 * 100), "%] STCT Done on coin ", coin,", Coin is currently on",current_signal,"position.")
+        stct_df, k_percent, d_percent, stct_buy_signals, stct_sell_signals, stct_current_signal = Stct.stochastic_calc(coin,
+                                                                                                             'minute5',
+                                                                                                             1440)
+        Stct.stochastic_grph(coin, stct_df, k_percent, d_percent, stct_buy_signals, stct_sell_signals, stct_current_signal)
+        print("[", round(progress / 30 * 100), "%] STCT Done on coin ", coin, ", Coin is currently on",
+              stct_current_signal, "position.")
     else:
         print("[STOP] Program Ended | Cause : Mode is on 0, or NaN")
         break
