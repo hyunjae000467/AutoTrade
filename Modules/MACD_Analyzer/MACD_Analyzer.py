@@ -1,14 +1,16 @@
-import pyupbit
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+# Not Accurate at this time, DO NOT USE THIS VALUE AS STANDALONE.
+# Always use other values such as Stocastic or RSI.
+
 import os
 from datetime import datetime
 from functools import lru_cache
+import matplotlib.pyplot as plt
+import pandas as pd
+import pyupbit
 
 
 @lru_cache(maxsize=32)  # Cache the result of the function to avoid redundant calculations
-def get_price_data(coin_name, interval='minute5', count=10080):
+def get_price_data(coin_name, interval='minute5', count=8640):
     return pyupbit.get_ohlcv(coin_name, interval=interval, count=count)
 
 
@@ -68,5 +70,5 @@ def macd_grph(coin_name):
 
     resource_location = os.path.join(img_dir, 'MACD_{}.png'.format(coin_name))
     plt.savefig(resource_location)
-    print("MACD Done")
+    # print("MACD Done")
     # plt.show()

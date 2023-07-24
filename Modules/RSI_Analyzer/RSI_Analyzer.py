@@ -48,4 +48,4 @@ def rsi_grph(coin_name):
 
     resource_location = os.path.join(img_dir, 'RSI_{}.png'.format(coin_name))
     plt.savefig(resource_location)
-    print("RSI Done")
+    # print("RSI Done")
