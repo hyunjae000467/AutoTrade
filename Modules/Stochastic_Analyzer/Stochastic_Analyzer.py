@@ -1,11 +1,12 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import pyupbit
 import os
 from datetime import datetime
+from datetime import timedelta
 
-def stochastic_calc(coin_name, interval="minute5", count=100):
+import matplotlib.pyplot as plt
+import pyupbit
+
+
+def stochastic_calc(coin_name, interval="minute5", count=1440):
     # Get historical price data from pyupbit
     df = pyupbit.get_ohlcv(coin_name, interval=interval, count=count)
 
@@ -15,8 +16,8 @@ def stochastic_calc(coin_name, interval="minute5", count=100):
     close = df['close']
 
     # Stochastic Oscillator Formula
-    lowest_low = low.rolling(14).min()
-    highest_high = high.rolling(14).max()
+    lowest_low = low.rolling(5).min()
+    highest_high = high.rolling(5).max()
     k_percent = 100 * (close - lowest_low) / (highest_high - lowest_low)
     d_percent = k_percent.rolling(3).mean()
 
@@ -27,21 +28,36 @@ def stochastic_calc(coin_name, interval="minute5", count=100):
     return df, k_percent, d_percent, buy_signals, sell_signals
 
 
-def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signals):
+def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signals, recent_hours=12):
+    # Get the end time of the data
+    end_time = df.index[-1]
+
+    # Calculate the start time for the last 12 hours
+    start_time = end_time - timedelta(hours=recent_hours)
+
+    # Slice the data for the last 12 hours
+    recent_df = df[df.index >= start_time]
+    recent_k_percent = k_percent[k_percent.index >= start_time]
+    recent_d_percent = d_percent[d_percent.index >= start_time]
+    recent_buy_signals = buy_signals[buy_signals.index >= start_time]
+    recent_sell_signals = sell_signals[sell_signals.index >= start_time]
+
     plt.close('all')
     plt.figure(figsize=(12, 6))
-    plt.plot(df.index, k_percent, label='%K')
-    plt.plot(df.index, d_percent, label='%D')
+    plt.plot(recent_df.index, recent_k_percent, label='%K')
+    plt.plot(recent_df.index, recent_d_percent, label='%D')
 
     # Plot horizontal lines at 80 and 20
     plt.axhline(80, color='red', linestyle='dashed', alpha=0.7)
     plt.axhline(20, color='green', linestyle='dashed', alpha=0.7)
 
     # Plot buy and sell signals
-    plt.plot(df.index[buy_signals], k_percent[buy_signals], '^', markersize=10, color='g', label='Buy Signal')
-    plt.plot(df.index[sell_signals], k_percent[sell_signals], 'v', markersize=10, color='r', label='Sell Signal')
+    plt.plot(recent_df.index[recent_buy_signals], recent_k_percent[recent_buy_signals], '^', markersize=10, color='g',
+             label='Buy Signal')
+    plt.plot(recent_df.index[recent_sell_signals], recent_k_percent[recent_sell_signals], 'v', markersize=10, color='r',
+             label='Sell Signal')
 
-    plt.title('Stochastic Oscillator')
+    plt.title('Stochastic Oscillator - Last 12 Hours')
     plt.xlabel('Date')
     plt.ylabel('Percentage')
     plt.legend()
