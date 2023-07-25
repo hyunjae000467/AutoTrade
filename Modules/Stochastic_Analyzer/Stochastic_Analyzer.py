@@ -63,7 +63,7 @@ def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signa
     plt.plot(recent_df.index[recent_sell_signals], recent_k_percent[recent_sell_signals], 'v', markersize=10, color='r',
              label='Sell Signal')
 
-    plt.title('Stochastic Oscillator - Last 6 Hours')
+    plt.title('Stochastic Oscillator for {} - Last 6 Hours'.format(coin_name))
     plt.xlabel('Date')
     plt.ylabel('Percentage')
     plt.legend()
