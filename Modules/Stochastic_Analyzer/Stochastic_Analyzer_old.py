@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import pyupbit
 
 
-def stochastic_calc(coin_name, df):
+def stochastic_calc(coin_name, interval="minute5", count=1440, backtest=0):
+    # Get historical price data from pyupbit
+    df = pyupbit.get_ohlcv(coin_name, interval=interval, count=count)
 
     # Calculate Stochastic Oscillator
     high = df['high']

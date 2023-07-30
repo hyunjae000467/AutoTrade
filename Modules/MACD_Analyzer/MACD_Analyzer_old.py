@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import pyupbit
 
 
-def macd_calc(coin_name, df):
+def macd_calc(coin_name, interval="minute10", count=3744, backtest=0):
+    # Get historical price data from pyupbit
+    df = pyupbit.get_ohlcv(coin_name, interval=interval, count=count)
 
     # Calculate MACD
     close = df['close']

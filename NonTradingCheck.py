@@ -1,8 +1,8 @@
 import math
 
-import Modules.MACD_Analyzer.MACD_Analyzer as Macd
-import Modules.RSI_Analyzer.RSI_Analyzer as Rsi
-import Modules.Stochastic_Analyzer.Stochastic_Analyzer as Stct
+import Modules.MACD_Analyzer.MACD_Analyzer_old as Macd
+import Modules.RSI_Analyzer.RSI_Analyzer_old as Rsi
+import Modules.Stochastic_Analyzer.Stochastic_Analyzer_old as Stct
 import Modules.Tensorflow_Analyzer.Tensorflow_Analyzer as Tf
 input_file = './Modules/Get_Coins_Data/clist'
 coin_list = []

@@ -6,8 +6,11 @@ import os
 from datetime import datetime, timedelta
 
 
-def rsi_calc(coin_name, df):
+def rsi_calc(coin_name, interval='minute5', count=4032):
     pd.set_option('display.float_format', lambda x: '%.2f' % x)
+
+    # Fetch data for the last 14 days (14 days * 24 hours * 12 5-minute intervals per hour)
+    df = pyupbit.get_ohlcv(coin_name, interval, count)
 
     df['변화량'] = df['close'] - df['close'].shift(1)
     df['상승폭'] = np.where(df['변화량'] >= 0, df['변화량'], 0)
