@@ -16,6 +16,7 @@ def calculate_dmi(df):
     df["minus_di"] = 100 * df["minus_dm"].rolling(window=14).sum() / df["low"].rolling(window=14).sum()
     df["dx"] = 100 * abs(df["plus_di"] - df["minus_di"]) / (df["plus_di"] + df["minus_di"])
     df["adx"] = df["dx"].rolling(window=14).mean()
+    return df  # DataFrame을 반환
 
 def generate_dmi_signal(df):
     # DMI 지표를 이용한 매매 신호 생성
@@ -29,23 +30,21 @@ def generate_dmi_signal(df):
             signals.append("hold")
     return signals
 
-def dmi_grph(coin_name, df, plus_di, minus_di, adx, dmi_signal, recent_hours=6):
+def dmi_grph(coin_name, df, recent_hours=6):
     # 그래프 그리기
+    df = calculate_dmi(df)  # DMI 계산 추가
     end_time = df.index[-1]
 
     start_time = end_time - timedelta(hours=recent_hours)
 
     recent_df = df[df.index >= start_time]
-    recent_plus_di = plus_di[plus_di.index >= start_time]
-    recent_minus_di = minus_di[minus_di.index >= start_time]
-    recent_adx = adx[adx.index >= start_time]
     
     plt.close('all')
     plt.figure(figsize=(12, 6))
     
-    plt.plot(recent_df.index, recent_plus_di, label='+DI')
-    plt.plot(recent_df.index, recent_minus_di, label='-DI')
-    plt.plot(recent_df.index, recent_adx, label='ADX')
+    plt.plot(recent_df.index, recent_df["plus_di"], label='+DI')
+    plt.plot(recent_df.index, recent_df["minus_di"], label='-DI')
+    plt.plot(recent_df.index, recent_df["adx"], label='ADX')
 
     # 그래프 스타일 및 레이블 설정
     plt.title('DMI for {} - Last {} Hours'.format(coin_name, recent_hours))
