@@ -11,14 +11,14 @@ def get_coins():
 
     # 일봉 데이터 다운로드
     for ticker_name in ticker_names:
-        print(f'download {ticker_name}')
+        print(f'[INFO] Downloading {ticker_name}')
         df = pyupbit.get_ohlcv(ticker_name)
-        df.to_csv(f'CData/{ticker_name}.csv', encoding='cp949')
+        df.to_csv(f'Modules/Get_Coins_Data/CData/{ticker_name}.csv', encoding='cp949')
         time.sleep(0.1)
     # 거래대금 정보 가져오기
     tickers = []
     for ticker_name in ticker_names:
-        filename = f'CData/{ticker_name}.csv'
+        filename = f'Modules/Get_Coins_Data/CData/{ticker_name}.csv'
         df = pd.read_csv(filename)
         yesterday = df.iloc[-2]
         tickers.append([ticker_name, yesterday['value']])
