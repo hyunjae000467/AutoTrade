@@ -56,7 +56,7 @@ def prophet_grph(ticker, df, predicted_close_price, current_signal):
 
     # Plot predicted close prices
     predicted_prices = [predicted_close_price] * len(df)
-    plt.plot(df['ds'], predicted_prices, label='Predicted Close Price', color='red')
+    plt.plot(df['ds'], predicted_prices, label='Predicted Close Price', color='red', linestyle='dotted')
     plt.title('Prophet Price Prediction for {}'.format(ticker))
     plt.xlabel('Date')
     plt.ylabel('Price')
