@@ -60,3 +60,48 @@ def dmi_grph(coin_name, df, recent_hours=6):
 
     resource_location = os.path.join(img_dir, 'DMI_{}.png'.format(coin_name))
     plt.savefig(resource_location)
+
+def backtest_dmi(ticker, interval, threshold, recent_hours=6):
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=180)  # 백테스트 기간 설정 (최근 6개월)
+
+    df = pyupbit.get_ohlcv(ticker, interval=interval, to=end_date, count=None)  # 백테스트 기간 동안의 모든 데이터 가져오기
+    df.reset_index(inplace=True)  # 인덱스 리셋
+    df = calculate_dmi(df)  # DMI 계산 추가
+
+    signals = generate_dmi_signal(df)  # DMI 매매 신호 생성
+
+    positions = []
+    balance = 1000000  # 초기 자본금 설정
+    holding = False
+
+    for i in range(len(signals)):
+        if signals[i] == "buy" and not holding:
+            buy_price = df['close'].iloc[i]
+            holding = True
+        elif signals[i] == "sell" and holding:
+            sell_price = df['close'].iloc[i]
+            balance = balance * (sell_price / buy_price)
+            holding = False
+
+        positions.append(balance)
+
+    return df, positions
+
+# 백테스트 실행
+ticker = "KRW-BTC"
+interval = "5m"
+threshold = 25
+recent_hours = 6
+
+backtest_df, backtest_positions = backtest_dmi(ticker, interval, threshold, recent_hours)
+
+# 백테스트 결과 시각화
+plt.figure(figsize=(12, 6))
+plt.plot(backtest_df['index'], backtest_positions, label="Backtest Performance")
+plt.title("Backtest Results")
+plt.xlabel("Date")
+plt.ylabel("Portfolio Value")
+plt.legend()
+plt.grid()
+plt.show()

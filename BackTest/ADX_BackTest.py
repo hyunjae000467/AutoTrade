@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pyupbit
 import os
 
-
+# ADX 계산 함수
 def calculate_adx(ticker, interval, period, threshold=25):
     df = pyupbit.get_ohlcv(ticker, interval=interval)
     df['true_range'] = np.maximum(df['high'] - df['low'], np.maximum(abs(df['high'] - df['close'].shift(1)),
@@ -28,6 +28,7 @@ def calculate_adx(ticker, interval, period, threshold=25):
 
     return df, df['adx'], current_signal
 
+# ADX 그래프 생성 함수
 def adx_grph(coin_name, df, adx, plus_di, minus_di, current_signal, threshold=25):
     end_time = df.index[-1]
     start_time = end_time - timedelta(hours=6)
@@ -65,3 +66,68 @@ def adx_grph(coin_name, df, adx, plus_di, minus_di, current_signal, threshold=25
 
     resource_location = os.path.join(img_dir, 'ADX_{}.png'.format(coin_name))
     plt.savefig(resource_location)
+    
+def generate_dmi_signal(df):
+    # DMI 지표를 이용한 매매 신호 생성
+    signals = []
+    for i in range(len(df)):
+        if df["plus_di"].iloc[i] > df["minus_di"].iloc[i] and df["adx"].iloc[i] > 25:
+            signals.append("buy")
+        elif df["plus_di"].iloc[i] < df["minus_di"].iloc[i] and df["adx"].iloc[i] > 25:
+            signals.append("sell")
+        else:
+            signals.append("hold")
+    return signals    
+
+def backtest_adx(ticker, interval, threshold, recent_hours=6):
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=180)  # 백테스트 기간 설정 (최근 6개월)
+
+    df = pyupbit.get_ohlcv(ticker, interval=interval, to=end_date, count=None)  # 백테스트 기간 동안의 모든 데이터 가져오기
+    df.reset_index(inplace=True)  # 인덱스 리셋
+
+    # ADX 계산 추가
+    df, adx_values, current_signal = calculate_adx(df)
+
+    adx = adx_values.rolling(window=14).mean()
+    plus_di = df['plus_di']
+    minus_di = df['minus_di']
+
+    adx_grph(ticker, df, adx, plus_di, minus_di, current_signal)  # 그래프 생성 함수 호출
+    
+    signals = generate_dmi_signal(df)  # DMI 매매 신호 생성
+
+    positions = []
+    balance = 1000000  # 초기 자본금 설정
+    holding = False
+    
+    for i in range(len(signals)):
+        if signals[i] == "buy" and not holding:
+            buy_price = df['close'].iloc[i]
+            holding = True
+        elif signals[i] == "sell" and holding:
+            sell_price = df['close'].iloc[i]
+            balance = balance * (sell_price / buy_price)
+            holding = False
+        
+        positions.append(balance)
+        
+    return df, positions
+
+# 백테스트 실행
+ticker = "KRW-BTC"
+interval = "5m"
+threshold = 25
+recent_hours = 6
+
+backtest_df, backtest_positions = backtest_adx(ticker, interval, threshold, recent_hours)
+
+# 백테스트 결과 시각화
+plt.figure(figsize=(12, 6))
+plt.plot(backtest_df['index'], backtest_positions, label="Backtest Performance")
+plt.title("Backtest Results")
+plt.xlabel("Date")
+plt.ylabel("Portfolio Value")
+plt.legend()
+plt.grid()
+plt.show()
