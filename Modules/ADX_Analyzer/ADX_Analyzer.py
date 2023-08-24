@@ -28,7 +28,6 @@ def calculate_adx(ticker, interval, period, threshold=25):
 
     return df, df['adx'], current_signal
 
-
 def adx_grph(coin_name, df, adx, plus_di, minus_di, current_signal, threshold=25):
     end_time = df.index[-1]
     start_time = end_time - timedelta(hours=6)

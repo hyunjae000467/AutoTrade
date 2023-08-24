@@ -94,4 +94,3 @@ def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signa
 
     resource_location = os.path.join(img_dir, 'Stochastic_{}.png'.format(coin_name))
     plt.savefig(resource_location)
-    # print("RSI Done")
