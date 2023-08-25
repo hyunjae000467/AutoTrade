@@ -24,7 +24,7 @@ def get_coins():
         tickers.append([ticker_name, yesterday['value']])
 
     # 거래대금 상위 30개의 종목만 리스트업
-    top_k = 30
+    top_k = 10
     tickers = sorted(tickers, key=lambda x: x[1], reverse=True)
     tickers = tickers[:top_k]
 

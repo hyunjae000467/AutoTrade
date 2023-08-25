@@ -1,107 +1,110 @@
-from datetime import datetime, timedelta
-import numpy as np
-import matplotlib.pyplot as plt
-import pyupbit
 import os
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
 
 def calculate_dmi(df):
-    # DMI 계산 및 반환
-    df["up_move"] = df["high"] - df["high"].shift(1)
-    df["down_move"] = df["low"].shift(1) - df["low"]
-    df["plus_dm"] = 0.0
-    df["minus_dm"] = 0.0
-    df.loc[df["up_move"] > df["down_move"], "plus_dm"] = df["up_move"]
-    df.loc[df["down_move"] > df["up_move"], "minus_dm"] = df["down_move"]
-    df["plus_di"] = 100 * df["plus_dm"].rolling(window=14).sum() / df["high"].rolling(window=14).sum()
-    df["minus_di"] = 100 * df["minus_dm"].rolling(window=14).sum() / df["low"].rolling(window=14).sum()
-    df["dx"] = 100 * abs(df["plus_di"] - df["minus_di"]) / (df["plus_di"] + df["minus_di"])
-    df["adx"] = df["dx"].rolling(window=14).mean()
-    return df  # DataFrame을 반환
+    # Calculate True Range (TR)
+    high = df['high']
+    low = df['low']
+    close = df['close']
 
-def generate_dmi_signal(df):
-    # DMI 지표를 이용한 매매 신호 생성
-    signals = []
-    for i in range(len(df)):
-        if df["plus_di"].iloc[i] > df["minus_di"].iloc[i] and df["adx"].iloc[i] > 25:
-            signals.append("buy")
-        elif df["plus_di"].iloc[i] < df["minus_di"].iloc[i] and df["adx"].iloc[i] > 25:
-            signals.append("sell")
-        else:
-            signals.append("hold")
-    return signals
+    df['TR'] = np.maximum.reduce([high - low, abs(high - close.shift(1)), abs(low - close.shift(1))])
 
-def dmi_grph(coin_name, df, recent_hours=6):
-    # 그래프 그리기
-    df = calculate_dmi(df)  # DMI 계산 추가
+    # Calculate Plus Directional Movement (+DM) and Minus Directional Movement (-DM)
+    df['UpMove'] = high - high.shift(1)
+    df['DownMove'] = low.shift(1) - low
+    df['PlusDM'] = np.where((df['UpMove'] > df['DownMove']) & (df['UpMove'] > 0), df['UpMove'], 0)
+    df['MinusDM'] = np.where((df['DownMove'] > df['UpMove']) & (df['DownMove'] > 0), df['DownMove'], 0)
+
+    # Calculate Average True Range (ATR)
+    atr_period = 14  # Adjust as needed
+    df['ATR'] = df['TR'].rolling(atr_period).mean()
+
+    # Calculate Plus Directional Indicator (+DI) and Minus Directional Indicator (-DI)
+    di_period = 14  # Adjust as needed
+    df['PlusDI'] = df['PlusDM'].rolling(di_period).sum() / df['ATR']
+    df['MinusDI'] = df['MinusDM'].rolling(di_period).sum() / df['ATR']
+
+    # Calculate Average Directional Index (ADX)
+    adx_period = 14  # Adjust as needed
+    df['DX'] = abs(df['PlusDI'] - df['MinusDI']) / (df['PlusDI'] + df['MinusDI'])
+    df['ADX'] = df['DX'].rolling(adx_period).mean()
+
+    # Generate Buy and Sell Signals
+    df['Buy_Signal'] = (df['PlusDI'] > df['MinusDI']) & (df['ADX'] > 25)
+    df['Sell_Signal'] = (df['PlusDI'] < df['MinusDI']) & (df['ADX'] > 25)
+
+    df['Signal'] = "Neutral"
+    df.loc[df['Buy_Signal'], 'Signal'] = "Buy"
+    df.loc[df['Sell_Signal'], 'Signal'] = "Sell"
+
+    current_signal = df['Signal'].iloc[-1]
+
+    return df, current_signal
+
+
+def dmi_grph(coin_name, df, buy_signals, sell_signals, current_signal, recent_hours=6):
+    # Get the end time of the data
     end_time = df.index[-1]
 
+    # Calculate the start time for the last N hours
     start_time = end_time - timedelta(hours=recent_hours)
 
+    # Slice the data for the last N hours
     recent_df = df[df.index >= start_time]
-    
+    recent_buy_signals = buy_signals[buy_signals.index >= start_time]
+    recent_sell_signals = sell_signals[sell_signals.index >= start_time]
+
     plt.close('all')
     plt.figure(figsize=(12, 6))
-    
-    plt.plot(recent_df.index, recent_df["plus_di"], label='+DI')
-    plt.plot(recent_df.index, recent_df["minus_di"], label='-DI')
-    plt.plot(recent_df.index, recent_df["adx"], label='ADX')
 
-    # 그래프 스타일 및 레이블 설정
+    # Plot +DI, -DI, and ADX
+    plt.plot(recent_df.index, recent_df['PLUS_DI_14'], label='+DI')
+    plt.plot(recent_df.index, recent_df['MINUS_DI_14'], label='-DI')
+    plt.plot(recent_df.index, recent_df['ADX_14'], label='ADX')
+
+    # Plot buy and sell signals
+    plt.plot(recent_df.index[recent_buy_signals], recent_df['ADX_14'][recent_buy_signals], '^', markersize=10,
+             color='g',
+             label='Buy Signal')
+    plt.plot(recent_df.index[recent_sell_signals], recent_df['ADX_14'][recent_sell_signals], 'v', markersize=10,
+             color='r',
+             label='Sell Signal')
+
     plt.title('DMI for {} - Last {} Hours'.format(coin_name, recent_hours))
     plt.xlabel('Date')
     plt.ylabel('Value')
     plt.legend()
     plt.grid()
 
-    # 그래프 저장 및 메시지 전송
+    # Add small text on the left bottom with current time
+    current_time = datetime.now().strftime('%Y/%m/%d-%H:%M:%S')
+    plt.text(0.01, 0.01, 'Current Time: {}'.format(current_time), transform=plt.gca().transAxes,
+             fontsize=10, verticalalignment='bottom', bbox=dict(facecolor='white', alpha=0.5))
+
+    # Add a text box on the top right
+    box_text = ""
+    text_color = "gray"
+    if current_signal == "Buy":
+        box_text = "BUY"
+        text_color = "red"
+    elif current_signal == "Sell":
+        box_text = "SELL"
+        text_color = "green"
+    elif current_signal == "Neutral":
+        box_text = "Neutral"
+
+    plt.text(0.98, 0.98, box_text, transform=plt.gca().transAxes, fontsize=12, color=text_color,
+             verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='white', edgecolor='black'))
+
+    # Create the 'DMI_IMG_FILES' directory if it does not exist
     img_dir = 'Modules/DMI_Analyzer/DMI_IMG_FILES'
     if not os.path.exists(img_dir):
         os.makedirs(img_dir)
 
     resource_location = os.path.join(img_dir, 'DMI_{}.png'.format(coin_name))
     plt.savefig(resource_location)
-
-def backtest_dmi(ticker, interval, threshold, recent_hours=6):
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=180)  # 백테스트 기간 설정 (최근 6개월)
-
-    df = pyupbit.get_ohlcv(ticker, interval=interval, to=end_date, count=None)  # 백테스트 기간 동안의 모든 데이터 가져오기
-    df.reset_index(inplace=True)  # 인덱스 리셋
-    df = calculate_dmi(df)  # DMI 계산 추가
-
-    signals = generate_dmi_signal(df)  # DMI 매매 신호 생성
-
-    positions = []
-    balance = 1000000  # 초기 자본금 설정
-    holding = False
-
-    for i in range(len(signals)):
-        if signals[i] == "buy" and not holding:
-            buy_price = df['close'].iloc[i]
-            holding = True
-        elif signals[i] == "sell" and holding:
-            sell_price = df['close'].iloc[i]
-            balance = balance * (sell_price / buy_price)
-            holding = False
-
-        positions.append(balance)
-
-    return df, positions
-
-# 백테스트 실행
-ticker = "KRW-BTC"
-interval = "5m"
-threshold = 25
-recent_hours = 6
-
-backtest_df, backtest_positions = backtest_dmi(ticker, interval, threshold, recent_hours)
-
-# 백테스트 결과 시각화
-plt.figure(figsize=(12, 6))
-plt.plot(backtest_df['index'], backtest_positions, label="Backtest Performance")
-plt.title("Backtest Results")
-plt.xlabel("Date")
-plt.ylabel("Portfolio Value")
-plt.legend()
-plt.grid()
-plt.show()
+    # print("DMI Done")

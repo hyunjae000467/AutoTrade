@@ -1,11 +1,12 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 
 import matplotlib.pyplot as plt
 import pyupbit
 
 
-def stochastic_calc(coin_name, df):
+def stochastic_calc(df):
 
     # Calculate Stochastic Oscillator
     high = df['high']
@@ -22,52 +23,74 @@ def stochastic_calc(coin_name, df):
     buy_signals = (k_percent > d_percent) & (k_percent.shift() < d_percent.shift())
     sell_signals = (k_percent < d_percent) & (k_percent.shift() > d_percent.shift())
 
-    return df, k_percent, d_percent, buy_signals, sell_signals
+    current_signal = "Neutral"
+    if buy_signals.iloc[-1]:
+        current_signal = "Buy"
+    elif sell_signals.iloc[-1]:
+        current_signal = "Sell"
+
+    return df, k_percent, d_percent, buy_signals, sell_signals, current_signal
 
 
-def stochastic_backtest(coin_name, df, k_percent, d_percent, buy_signals, sell_signals):
-    # Initialize variables
-    initial_balance = 1000000  # Initial balance in KRW
-    balance = initial_balance
-    coins = 0
-    in_position = False
-    buy_price = 0
-    total_trades = 0
-    winning_trades = 0
+def stochastic_grph(coin_name, df, k_percent, d_percent, buy_signals, sell_signals, current_signal, recent_hours=6):
+    # Get the end time of the data
+    end_time = df.index[-1]
 
-    # Loop through the data
-    for i in range(len(df)):
-        if buy_signals[i] and not in_position:
-            coins = balance / df['close'][i]
-            balance = 0
-            buy_price = df['close'][i]
-            in_position = True
-            total_trades += 1
-        elif sell_signals[i] and in_position:
-            balance = coins * df['close'][i]
-            coins = 0
-            in_position = False
-            if df['close'][i] > buy_price:
-                winning_trades += 1
+    # Calculate the start time for the last 12 hours
+    start_time = end_time - timedelta(hours=recent_hours)
 
-    # Calculate metrics
-    final_balance = balance + (coins * df['close'].iloc[-1])
-    total_profit = final_balance - initial_balance
-    win_rate = winning_trades / total_trades if total_trades > 0 else 0
+    # Slice the data for the last 12 hours
+    recent_df = df[df.index >= start_time]
+    recent_k_percent = k_percent[k_percent.index >= start_time]
+    recent_d_percent = d_percent[d_percent.index >= start_time]
+    recent_buy_signals = buy_signals[buy_signals.index >= start_time]
+    recent_sell_signals = sell_signals[sell_signals.index >= start_time]
 
-    return final_balance, total_profit, win_rate
+    plt.close('all')
+    plt.figure(figsize=(12, 6))
+    plt.plot(recent_df.index, recent_k_percent, label='%K')
+    plt.plot(recent_df.index, recent_d_percent, label='%D')
 
+    # Plot horizontal lines at 80 and 20
+    plt.axhline(80, color='red', linestyle='dashed', alpha=0.7)
+    plt.axhline(20, color='green', linestyle='dashed', alpha=0.7)
 
-# Load data using pyupbit or provide your own data
-coin_name = 'BTC'
-df = pyupbit.get_ohlcv(coin_name, interval="minute60")
+    # Plot buy and sell signals
+    plt.plot(recent_df.index[recent_buy_signals], recent_k_percent[recent_buy_signals], '^', markersize=10, color='g',
+             label='Buy Signal')
+    plt.plot(recent_df.index[recent_sell_signals], recent_k_percent[recent_sell_signals], 'v', markersize=10, color='r',
+             label='Sell Signal')
 
-# Calculate Stochastic Oscillator
-df, k_percent, d_percent, buy_signals, sell_signals = stochastic_calc(coin_name, df)
+    plt.title('Stochastic Oscillator for {} - Last 6 Hours'.format(coin_name))
+    plt.xlabel('Date')
+    plt.ylabel('Percentage')
+    plt.legend()
+    plt.grid()
 
-# Perform backtest
-final_balance, total_profit, win_rate = stochastic_backtest(coin_name, df, k_percent, d_percent, buy_signals, sell_signals)
+    # Add small text on the left bottom with current time
+    current_time = datetime.now().strftime('%Y/%m/%d-%H:%M:%S')
+    plt.text(0.01, 0.01, 'Current Time: {}'.format(current_time), transform=plt.gca().transAxes,
+             fontsize=10, verticalalignment='bottom', bbox=dict(facecolor='white', alpha=0.5))
 
-print(f"Final Balance: {final_balance:.2f} KRW")
-print(f"Total Profit: {total_profit:.2f} KRW")
-print(f"Win Rate: {win_rate:.2%}")
+    # Add a text box on the top right
+    box_text = ""
+    text_color = "gray"
+    if current_signal == "Buy":
+        box_text = "BUY"
+        text_color = "red"
+    elif current_signal == "Sell":
+        box_text = "SELL"
+        text_color = "green"
+    elif current_signal == "Neutral":
+        box_text = "Neutral"
+
+    plt.text(0.98, 0.98, box_text, transform=plt.gca().transAxes, fontsize=12, color = text_color,
+             verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='white', edgecolor='black'))
+
+    # Create the 'RSI_IMG_FILES' directory if it does not exist
+    img_dir = 'Modules/Stochastic_Analyzer/Stochastic_IMG_FILES'
+    if not os.path.exists(img_dir):
+        os.makedirs(img_dir)
+
+    resource_location = os.path.join(img_dir, 'Stochastic_{}.png'.format(coin_name))
+    plt.savefig(resource_location)
