@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pyupbit
 import talib
 
-def MACD_calc(coin_name, df):
+def macd_calc(coin_name, df):
     # Calculate MACD
     high = df['high']
     low = df['low']
@@ -30,7 +30,7 @@ def MACD_calc(coin_name, df):
 
     return df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal
 
-def MACD_grph(coin_name, df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal, recent_hours=6):
+def macd_grph(coin_name, df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal, recent_hours=6):
     # Get the end time of the data
     end_time = df.index[-1]
 
