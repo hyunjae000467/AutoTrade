@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 import pyupbit
 import talib
 
-def dmi_calc(coin_name, df):
-    # Calculate DMI
+def MACD_calc(coin_name, df):
+    # Calculate MACD
     high = df['high']
     low = df['low']
     close = df['close']
 
-    # Calculate DMI using TA-Lib
+    # Calculate MACD using TA-Lib
     dmi_data = talib.DX(high, low, close)
     adx = talib.ADX(high, low, close, timeperiod=14)
     minus_di = talib.MINUS_DI(high, low, close, timeperiod=14)
@@ -30,7 +30,7 @@ def dmi_calc(coin_name, df):
 
     return df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal
 
-def dmi_grph(coin_name, df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal, recent_hours=6):
+def MACD_grph(coin_name, df, dmi_data, plus_di, minus_di, buy_signals, sell_signals, current_signal, recent_hours=6):
     # Get the end time of the data
     end_time = df.index[-1]
 
